@@ -1,5 +1,10 @@
 # Spectra-analysis
-XANES analysis from SPEC file
+Exprimental Data Anaylysis from SPEC file
+            ESRF ID26 
+--------- version(0.8) --------- 
+HAVE FUN WITH YOUR DATA ANALYSIS!
+18-04-2017 -- Juanjuan Huang(Cathy). 
+
 
 This includes: 
 1. Averaged/summed XANES plotting with interpolation for incident energy
