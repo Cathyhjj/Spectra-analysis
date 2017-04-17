@@ -1,6 +1,6 @@
-# Spectra-analysis
 Exprimental Data Anaylysis from SPEC file
-            ESRF ID26 
+
+ESRF ID26 
 --------- version(0.8) --------- 
 HAVE FUN WITH YOUR DATA ANALYSIS!
 18-04-2017 -- Juanjuan Huang(Cathy). 
