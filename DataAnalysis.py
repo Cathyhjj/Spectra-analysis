@@ -4,7 +4,7 @@
 
 """
 Exprimental RIXS Data Anaylysis, ESRF ID26 
---------- version(0.8) --------- 
+--------- version(0.81) --------- 
 HAVE FUN WITH YOUR DATA ANALYSIS!
 18-04-2017 -- Juanjuan Huang(Cathy). 
 
@@ -306,7 +306,7 @@ class DataAnalysis(object):
         if choice == 'average':
             return averaged_dataArray
     
-    def RIXS_display(self, dataArray, title = 'RIXS', x_lim = (6537,6544),y_lim=(5892,5902), choice = 'EE', mode = '2d'):
+    def RIXS_display(self, dataArray, title = 'RIXS', choice = 'EE', mode = '2d'):
         """
         plotRIXS(shape, dtype=float, order='C')
 
@@ -347,6 +347,7 @@ class DataAnalysis(object):
                 plt.ylabel('Emitted Energy [eV]')
                 # plt.ylim(y_lim)
                 # plt.xlim(x_lim)
+                # x_lim = (6537,6544),y_lim=(5892,5902), 
             elif choice == 'ET':
                 plt.axis('equal')
                 plt.ylabel('Energy Transfer [eV]')
@@ -402,6 +403,8 @@ class DataAnalysis(object):
             plt.xlabel('Energy transfer')
             plt.ylabel('Arbitrary Intensity')
             plt.show()
+            CIE_dataArray = np.array([dataArray[1][:,0]*1000, cut_intensity[0]])
+            return CIE_dataArray
         elif choice == 'CET':
             # Find the interpolated intensity
             cut_intensity = cut_interp2d(dataArray[0][0,:],cut)
@@ -411,6 +414,8 @@ class DataAnalysis(object):
             plt.xlabel('Incident Energy')
             plt.ylabel('Arbitrary Intensity')
             plt.show()
+            CET_dataArray = np.array([dataArray[0][0,:]*1000,cut_intensity])
+            return CET_dataArray
         elif choice == 'CEE':
             # Find the interpolated intensity
             cut_intensity = cut_interp2d(dataArray[0][0,:],cut)
@@ -420,6 +425,8 @@ class DataAnalysis(object):
             plt.xlabel('Incident Energy')
             plt.ylabel('Arbitrary Intensity')
             plt.show()
+            CEE_dataArray = np.array([dataArray[0][0,:]*1000,cut_intensity])
+            return CEE_dataArray
     
     def RIXS_integration(self, dataArray):
         """
@@ -433,6 +440,7 @@ class DataAnalysis(object):
         -------
         out :     
         Integration along incident energy and energy transfer
+        integration_dataArray
 
     """
         # integration for incident energy ---> Conventional XANES
@@ -449,4 +457,5 @@ class DataAnalysis(object):
         ax[1].set_ylabel('Integrated intensity')
         plt.setp(ax[1].get_yticklabels(), visible = True)
         plt.show()
-        
+        integration_dataArray = np.array([[dataArray[0][0,:]*1000,sumIntensity_IE],[dataArray[1][:,0]*1000,sumIntensity_ET]])
+        return integration_dataArray
