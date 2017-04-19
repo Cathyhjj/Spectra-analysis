@@ -1,8 +1,6 @@
 
 
-# --------------------------------------------------------
 # A simple documentation for RIXS DataAnalysis
-# --------------------------------------------------------
 Juanjuan Huang (Cathy)<br>
 19-04-2017<br>
 Version 0.0
