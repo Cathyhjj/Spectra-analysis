@@ -6,14 +6,14 @@ Juanjuan Huang (Cathy)<br>
 Version 0.0
 
 ## <font color="7d020c">Class DataAnalysis(object)</font>
-   <p style="font-size:15px">This includes:</p>
-   <p style="font-size:15px"> 1. Averaged/summed XANES plotting with interpolation for incident energy</p> 
+   <p style="font-size:15px">This includes:<br>
+   <p style="font-size:15px"> 1. Averaged/summed XANES plotting with interpolation for incident energy<br> 
    <p style="font-size:15px"> 2. 2D/3D RIXS plane plotting with interpolation for both incident energy and emission energy<br>
    &nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;2.1 concentration correction<br>
    &nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;2.2 IE versus EE plotting<br>
    &nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;2.3 IE versus ET plotting<br> 
-   &nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;2.4 RIXS plane CIE CEE CET cuts and integration plotting</p>
-   <p style="font-size:15px"> 3. Averaging and merging for RIXS planes</p> 
+   &nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;2.4 RIXS plane CIE CEE CET cuts and integration plotting<br>
+   <p style="font-size:15px"> 3. Averaging and merging for RIXS planes<br>
    <p style="font-size:15px"> 4. Save the data into RIXS txt files so that can be further used by other software, e.g, Matlab</p>  
 
   ### Methods
