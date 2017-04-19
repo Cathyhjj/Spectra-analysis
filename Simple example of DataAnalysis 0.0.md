@@ -8,7 +8,7 @@ Version 0.0
 ## <font color="7d020c">Class DataAnalysis(object)</font>
    <p style="font-size:15px">This includes:</p>
    <p style="font-size:15px"> 1. Averaged/summed XANES plotting with interpolation for incident energy</p> 
-   <p style="font-size:15px"> 2. 2D/3D RIXS plane plotting with interpolation for both incident energy and emission energy<br></p>
+   <p style="font-size:15px"> 2. 2D/3D RIXS plane plotting with interpolation for both incident energy and emission energy</p>
    &nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;2.1 concentration correction<br>
    &nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;2.2 IE versus EE plotting<br>
    &nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;2.3 IE versus ET plotting<br> 
