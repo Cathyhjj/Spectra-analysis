@@ -5,7 +5,7 @@ Juanjuan Huang (Cathy)<br>
 19-04-2017<br>
 Version 0.0
 
-# <font color="7d020c">Class DataAnalysis(object)</font>
+## <font color="7d020c">Class DataAnalysis(object)</font>
    <p style="font-size:15px">This includes:</p>
    <p style="font-size:15px"> 1. Averaged/summed XANES plotting with interpolation for incident energy</p> 
    <p style="font-size:15px"> 2. 2D/3D RIXS plane plotting with interpolation for both incident energy and emission energy<br></p>
