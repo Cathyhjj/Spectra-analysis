@@ -9,7 +9,6 @@ Version 0.0
    <p style="font-size:15px">This includes:</p>
    <p style="font-size:15px"> 1. Averaged/summed XANES plotting with interpolation for incident energy</p> 
    <p style="font-size:15px"> 2. 2D/3D RIXS plane plotting with interpolation for both incident energy and emission energy<br></p>
-   <br>
    &nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;2.1 concentration correction<br>
    &nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;2.2 IE versus EE plotting<br>
    &nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;2.3 IE versus ET plotting<br> 
@@ -17,30 +16,23 @@ Version 0.0
    <p style="font-size:15px"> 3. Averaging and merging for RIXS planes</p> 
    <p style="font-size:15px"> 4. Save the data into RIXS txt files so that can be further used by other software, e.g, Matlab</p>  
 
-
   ### Methods
-  <b>XANES_data( ): </b>To get XANES merged data ndarray from SPEC file
-  
+  <b>XANES_data( ): </b>To get XANES merged data ndarray from SPEC file<br>
       return 1d ndarray [incident energy, intensity]
 
-  <b>RIXS_data( ) :</b>To get RIXS data ndarray from SPEC file
-      
+  <b>RIXS_data( ) :</b>To get RIXS data ndarray from SPEC file<br> 
       return data ndarray [incident energy, emission energy, intensity]
 
-  <b>RIXS_merge( ): </b>To merge (sum up/average different RIXS data ndarray)
-      
+  <b>RIXS_merge( ): </b>To merge (sum up/average different RIXS data ndarray)<br>
       return data ndarray [incident energy, emission energy, intensity]
 
-  <b>RIXS_display( ) :</b>To plot RIXS planes
-      
+  <b>RIXS_display( ) :</b>To plot RIXS planes<br>
       return None
 
-  <b>RIXS_cut( ) :</b>To do CIE, CET, CEE cuts
-      
+  <b>RIXS_cut( ) :</b>To do CIE, CET, CEE cuts<br>
       return CIE, CET, CEE data ndarray [incident energy/energy transfer, intensity]
 
-  <b>RIXS_integration( ) :</b>Integration along incident energy and energy transfer
-      
+  <b>RIXS_integration( ) :</b>Integration along incident energy and energy transfer<br>
       return integrated data ndarray [incident energy/energy transfer, intensity]
 
   ### Parameters
