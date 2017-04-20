@@ -7,8 +7,8 @@ Version 0.0
 
 ## <font color="7d020c">Class DataAnalysis(object)</font>
    This includes:<br>
-   1. Averaged/summed XANES plotting with interpolation for incident energy<br> 
-   2. 2D/3D RIXS plane plotting with interpolation for both incident energy and emission energy<br>
+   1. Averaged/summed XANES plotting with interpolation for incident energy and corresponding intensities<br> 
+   2. 2D/3D RIXS plane plotting with interpolation for both incident energy, emission energy and corresponding intensities<br>
    &nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;2.1 concentration correction<br>
    &nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;2.2 IE versus EE plotting<br>
    &nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;2.3 IE versus ET plotting<br> 
@@ -42,7 +42,7 @@ Version 0.0
 
 
 ```python
-from DataAnalysiscopy import DataAnalysis
+from DataAnalysis import DataAnalysis
 import matplotlib.pyplot as plt
 ```
 
