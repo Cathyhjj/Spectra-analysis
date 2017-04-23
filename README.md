@@ -19,3 +19,7 @@ This includes:
 3. Averaging and merging for RIXS planes
 
 4. Save the data into RIXS txt files so that can be further used by other software, e.g, Matlab
+
+
+There is a simple documentation with some examples in the folder: 'Simple Examples Pics'
+------->'Simple_documentation.md'
