@@ -3,7 +3,7 @@
 #RIXS_Data_Analysis
 
 """
-Exprimental RIXS Data Anaylysis, ESRF ID26 
+Exprimental RIXS Data Anaylysis
 --------- version(0.81) --------- 
 HAVE FUN WITH YOUR DATA ANALYSIS!
 18-04-2017 -- Juanjuan Huang(Cathy). 
