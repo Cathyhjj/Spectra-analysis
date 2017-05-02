@@ -3,24 +3,29 @@
 #RIXS_Data_Analysis
 
 """
-Exprimental RIXS Data Anaylysis
---------- version(0.81) --------- 
+Exprimental RIXS Data Anaylysis, ESRF ID26 
+--------- version(1.0) --------- 
 HAVE FUN WITH YOUR DATA ANALYSIS!
-18-04-2017 -- Juanjuan Huang(Cathy). 
+02-05-2017 -- Juanjuan Huang(Cathy). 
 
 This includes: 
-1. Averaged/summed XANES plotting with interpolation for incident energy
-2. 2D/3D RIXS plane plotting with interpolation for both incident energy and emission energy
-    2.1 concentration correction
-    2.2 IE versus EE plotting 
-    2.3 IE versus ET plotting 
-    2.4 RIXS plane CIE CEE CET cuts and integration plotting
-3. Averaging and merging for RIXS planes
-4. Save the data into RIXS txt files so that can be further used by other software, e.g, Matlab
+(I)  XANES data processing
+    1.1 Averaged/summed XANES plotting with interpolation for incident energy
+    1.2 XANES area normalization (normalized to whole area or specified tail region)
+(II) RIXS data processing
+    2.1 2D/3D RIXS plane plotting with interpolation for both incident energy and emission energy
+        2.1.1 concentration correction
+        2.1.2 IE versus EE plotting 
+        2.1.3 IE versus ET plotting 
+        2.1.4 RIXS plane CIE CEE CET cuts and integration plotting
+    2.2 Averaging and merging for RIXS planes
+(III)Save the data into RIXS txt files so that can be further used by other software, e.g, Matlab
 
 -----
 To do
-[] Save RIXS plotting data(XX, YY, MDfci_intensity, MDfci_correct_intensity,MDfci_aver_intensity) into a txt file
+[] Center_of_Mass of the peaks
+[] Peaks fitting
+[] Save into a txt file
 """
 
 import numpy as np
@@ -28,9 +33,50 @@ import matplotlib.pyplot as plt
 from silx.io.specfile import SpecFile
 import scipy.interpolate as interp
 import scipy.ndimage as nd
+from scipy import signal
 import os
 
 class DataAnalysis(object):
+    '''
+ |   class DataAnalysis(object)
+ |
+ |   This includes: 
+ |   1. Averaged/summed XANES plotting with interpolation for incident energy
+ |   2. 2D/3D RIXS plane plotting with interpolation for both incident energy and emission energy
+ |      2.1 concentration correction
+ |      2.2 IE versus EE plotting 
+ |      2.3 IE versus ET plotting 
+ |      2.4 RIXS plane CIE CEE CET cuts and integration plotting
+ |   3. Averaging and merging for RIXS planes
+ |   4. Save the data into RIXS txt files so that can be further used by other software, e.g, Matlab
+ |
+ |
+ |  Methods
+ |  ----------
+ |  (for the __new__ method; see Notes below)
+ |
+ |  XANES_data(): get XANES merged data ndarray from SPEC file
+ |      return 1d ndarray [incident energy, intensity]
+ |
+ |  RIXS_data() : To get RIXS data ndarray from SPEC file
+ |      return data ndarray [incident energy, emission energy, intensity]
+ |
+ |  RIXS_merge: To merge (sum up/average different RIXS data ndarray)
+ |      return data ndarray [incident energy, emission energy, intensity]
+ |
+ |  RIXS_display : To plot RIXS planes
+ |      return None
+ |
+ |  RIXS_cut : To do CIE, CET, CEE cuts
+ |      return CIE, CET, CEE data ndarray [incident energy/energy transfer, intensity]
+ |
+ |  RIXS_integration : Integration along incident energy and energy transfer
+ |      return integrated data ndarray [incident energy/energy transfer, intensity]
+ |
+ |  Parameters
+ |  ----------
+ |  path : the filepath of Specfile
+    '''
     
     def __init__(self, path):
         self.path = path
@@ -51,10 +97,9 @@ class DataAnalysis(object):
         savetxt: default True, save the ET, EE data as folders 
         Returns
         -------
-        out : A data list [EE_XX, EE_YY, EE_MDfci_correc_inten_2dinterp]
-              EE_XX -----> interpolated incident energy ndarray
-              EE_YY -----> interpolated emission energy ndarray
-              EE_MDfci_correc_inten_2dinterp -----> interpolated intensity ndarray
+        out : A 1d data ndarray [incident_Energy_interp, XANES_merge_inten]
+              incident_Energy_interp -----> interpolated incident energy
+              XANES_merge_inten -----> interpolated intensity
     """
         # Each scan has different incident energy points
         # this step finds the highest incident energy corresponding scan
@@ -121,7 +166,33 @@ class DataAnalysis(object):
         
         return dataArray_XANES
     
+
+    def XANES_normalize(self, XANES_data, normalized_starting_energy = None):
+        """
+        To do normalization for XANES
+        Parameters
+        ----------
+        XANES_data : the XANES_data output ndarray
+        normalized_starting_energy: An energy number, e.g, Incident Energy: 6600 eV, 
+                                              -----> will do normalization from 6600 eV to the end of tail feature
+                                    Not difine-----> Normalization to the whole area
+        Returns
+        -------
+        out : A data ndarray [energy, normlized_intensity]
+
+        """
+        if normalized_starting_energy == None:
+            normalized_starting_energy = XANES_data[0][0] * 1000
+        postedge_index = np.where(XANES_data[0] >= normalized_starting_energy/1000)
+        postedge_intensity = XANES_data[1][postedge_index[0]]
+        # Calculate the tail edge area
+        tail_edge_area = np.trapz(postedge_intensity, dx=1)
+        # Normalization to the whole area
+        norm_intensity = XANES_data[1]/tail_edge_area
+        norm_dataArray = np.array([XANES_data[0],norm_intensity])
+        return norm_dataArray
     
+
     def RIXS_data(self,firstScan, lastScan, concCorrecScan, interp_npt_1eV = 20, choice = 'EE', savetxt = False):
         """
         To get RIXS data ndarray from SPEC file
@@ -140,13 +211,13 @@ class DataAnalysis(object):
         Returns
         -------
         if choice = 'EE'
-        out : A data list [EE_XX, EE_YY, EE_MDfci_correc_inten_2dinterp]
+        out : ndarray, A data list [EE_XX, EE_YY, EE_MDfci_correc_inten_2dinterp]
               EE_XX -----> interpolated incident energy ndarray
               EE_YY -----> interpolated emission energy ndarray
               EE_MDfci_correc_inten_2dinterp -----> interpolated intensity ndarray
 
         if choice = 'ET'
-        out : A data list [ET_XX, ET_YY, ET_MDfci_correc_inten_2dinterp]
+        out : ndarray, A data list [ET_XX, ET_YY, ET_MDfci_correc_inten_2dinterp]
               ET_XX -----> interpolated incident energy ndarray
               ET_YY -----> interpolated energy transfer ndarray
               ET_MDfci_correc_inten_2dinterp -----> interpolated intensity ndarray
@@ -264,7 +335,7 @@ class DataAnalysis(object):
 
     def RIXS_merge(self, scansets, choice = 'sum'):
         """
-        To merge(sum up different scans sets)
+        To merge (sum up/average different RIXS data ndarray)
 
         Parameters
         ----------
@@ -308,7 +379,7 @@ class DataAnalysis(object):
     
     def RIXS_display(self, dataArray, title = 'RIXS', choice = 'EE', mode = '2d'):
         """
-        plotRIXS(shape, dtype=float, order='C')
+        To plot RIXS planes
 
         Parameters
         ----------
@@ -380,12 +451,13 @@ class DataAnalysis(object):
         choice: 'CIE'-- Constant incident energy cut
                 'CET'-- Constant energy transfer cut
                 'CEE'-- Constant emission energy cut
-        cut: the energy(eV) you want to cut, e.g., 6530 eV
+        cut: the energy (eV) you want to cut, e.g., 6530 eV
 
         Returns
         -------
-        out : ndarray
-            Array of zeros with the given shape, dtype, and order.
+        out : 
+        ndarray
+ |      CIE, CET, CEE data ndarray [incident energy/energy transfer, intensity]
     """
 
         # Convert all the NaN to numbers (the 2d interpolation will raise errors when existing NaN)
@@ -434,13 +506,14 @@ class DataAnalysis(object):
 
         Parameters
         ----------
-        dataArray: the RIXS_data output file
+        dataArray: the RIXS_data return data ndarray
 
         Returns
         -------
         out :     
-        Integration along incident energy and energy transfer
-        integration_dataArray
+        ndarray
+        integrated data ndarray [incident energy/energy transfer, intensity]
+
 
     """
         # integration for incident energy ---> Conventional XANES
