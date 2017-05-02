@@ -25,7 +25,7 @@ This includes:
 To do
 [] Center_of_Mass of the peaks
 [] Peaks fitting
-[] Save into a txt file
+[] Save RIXS plotting data(XX, YY, MDfci_intensity, MDfci_correct_intensity,MDfci_aver_intensity) into a txt file
 """
 
 import numpy as np
@@ -57,6 +57,9 @@ class DataAnalysis(object):
  |
  |  XANES_data(): get XANES merged data ndarray from SPEC file
  |      return 1d ndarray [incident energy, intensity]
+ |
+ |  XANES_normalize(): Normalize XANES to area into unity(whole area or specified tail area)
+ |      return 1d ndarray [incident energy, normalized_intensity]
  |
  |  RIXS_data() : To get RIXS data ndarray from SPEC file
  |      return data ndarray [incident energy, emission energy, intensity]
@@ -169,7 +172,7 @@ class DataAnalysis(object):
 
     def XANES_normalize(self, XANES_data, normalized_starting_energy = None):
         """
-        To do normalization for XANES
+        Normalize XANES to area into unity(whole area or specified tail area)
         Parameters
         ----------
         XANES_data : the XANES_data output ndarray
