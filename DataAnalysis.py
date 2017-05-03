@@ -12,6 +12,8 @@ This includes:
 (I)  XANES data processing
     1.1 Averaged/summed XANES plotting with interpolation for incident energy
     1.2 XANES area normalization (normalized to whole area or specified tail region)
+    1.3 XANES area integration calculation
+    1.4 Find peaks(maxima) in XANES
 (II) RIXS data processing
     2.1 2D/3D RIXS plane plotting with interpolation for both incident energy and emission energy
         2.1.1 concentration correction
@@ -57,21 +59,22 @@ class DataAnalysis(object):
  |
  |  Methods
  |  ----------
- |  (for the __new__ method; see Notes below)
  |
  |  -----------------------------------------
  |  ------------- XANES PART ----------------
  |  -----------------------------------------
  |
  |  XANES_data(): get XANES merged data ndarray from SPEC file
- |      return 1d ndarray [incident energy, intensity]
+ |      return [incident energy, intensity], dtype = 1d ndarray
  |
  |  XANES_normalize(): Normalize XANES to area into unity(whole area or specified tail area)
- |      return 1d ndarray [incident energy, normalized_intensity]
+ |      return [incident energy, normalized_intensity], dtype = 1d ndarray
  |
  |  XANES_find_peaks(): Find XANES peaks and plotting
- |      return 1d ndarray [peak energy, peak_intensity]
+ |      return [peak energy, peak_intensity], dtype = 1d ndarray
  |
+ |  XANES_area(): calculate XANES area for specified energy range
+ |      return area, dtype = float
  |
  |  -----------------------------------------
  |  ------------- RIXS PART -----------------
@@ -210,6 +213,29 @@ class DataAnalysis(object):
         norm_intensity = XANES_data[1]/tail_edge_area
         norm_dataArray = np.array([XANES_data[0],norm_intensity])
         return norm_dataArray
+    
+    def XANES_area(self, XANES_data, (e1, e2)):
+        """
+        Calculate XANES area
+        Parameters
+        ----------
+        XANES_data : The XANES_data output ndarray
+        (e1, e2): Energy range tuple
+                  e1: The starting energy for calculating the area, in eV
+                  e2: The ending energy for calculating the area, in eV
+        Returns
+        -------
+        out : XANES_area, dtype = float
+
+        """
+        # Calculate pre-edge area
+        edge_area_index = np.where((XANES_data[0] >= e1/1000) & (XANES_data[0] <= e2/1000))
+        edge_area_intensity = XANES_data[1][edge_area_index[0]]
+        # Calculate the tail edge area
+        edge_area = np.trapz(edge_area_intensity, dx=1)
+        print('The edge area from %d eV to %d eV is :'%(e1, e2) + str(edge_area) )
+        return edge_area
+    
     
     def XANES_find_peaks(self, XANES_data, energy_range = None, accuracy = (3,30)):
         """
