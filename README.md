@@ -1,4 +1,4 @@
-Exprimental Data Anaylysis from SPEC file version(1.0)
+# Exprimental Data Anaylysis from SPEC file version(1.0)
 
 02-05-2017 -- Juanjuan Huang(Cathy). 
 
