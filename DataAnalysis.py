@@ -4,9 +4,9 @@
 
 """
 Exprimental RIXS Data Anaylysis, ESRF ID26 
---------- version(1.0) --------- 
+--------- version(1.1) --------- 
 HAVE FUN WITH YOUR DATA ANALYSIS!
-02-05-2017 -- Juanjuan Huang(Cathy). 
+03-05-2017 -- Juanjuan Huang(Cathy). 
 
 This includes: 
 (I)  XANES data processing
@@ -40,26 +40,42 @@ class DataAnalysis(object):
     '''
  |   class DataAnalysis(object)
  |
- |   This includes: 
- |   1. Averaged/summed XANES plotting with interpolation for incident energy
- |   2. 2D/3D RIXS plane plotting with interpolation for both incident energy and emission energy
- |      2.1 concentration correction
- |      2.2 IE versus EE plotting 
- |      2.3 IE versus ET plotting 
- |      2.4 RIXS plane CIE CEE CET cuts and integration plotting
- |   3. Averaging and merging for RIXS planes
- |   4. Save the data into RIXS txt files so that can be further used by other software, e.g, Matlab
+ | This includes: 
+ | (I)  XANES data processing
+ |     1.1 Averaged/summed XANES plotting with interpolation for incident energy
+ |     1.2 XANES area normalization (normalized to whole area or specified tail region)
+ |     1.3 Find peaks(maxima) in XANES
+ | (II) RIXS data processing
+ |     2.1 2D/3D RIXS plane plotting with interpolation for both incident energy and emission energy
+ |         2.1.1 concentration correction
+ |         2.1.2 IE versus EE plotting 
+ |         2.1.3 IE versus ET plotting 
+ |         2.1.4 RIXS plane CIE CEE CET cuts and integration plotting
+ |     2.2 Averaging and merging for RIXS planes
+ | (III)Save the data into RIXS txt files so that can be further used by other software, e.g, Matlab
  |
  |
  |  Methods
  |  ----------
  |  (for the __new__ method; see Notes below)
  |
+ |  -----------------------------------------
+ |  ------------- XANES PART ----------------
+ |  -----------------------------------------
+ |
  |  XANES_data(): get XANES merged data ndarray from SPEC file
  |      return 1d ndarray [incident energy, intensity]
  |
  |  XANES_normalize(): Normalize XANES to area into unity(whole area or specified tail area)
  |      return 1d ndarray [incident energy, normalized_intensity]
+ |
+ |  XANES_find_peaks(): Find XANES peaks and plotting
+ |      return 1d ndarray [peak energy, peak_intensity]
+ |
+ |
+ |  -----------------------------------------
+ |  ------------- RIXS PART -----------------
+ |  -----------------------------------------
  |
  |  RIXS_data() : To get RIXS data ndarray from SPEC file
  |      return data ndarray [incident energy, emission energy, intensity]
@@ -195,6 +211,50 @@ class DataAnalysis(object):
         norm_dataArray = np.array([XANES_data[0],norm_intensity])
         return norm_dataArray
     
+        def XANES_find_peaks(self, XANES_data, energy_range = None, accuracy = (3,30)):
+        """
+        Find XANES peaks
+        Parameters
+        ----------
+        XANES_data : the XANES_data or XANES_normalize output ndarray
+        energy_range: default
+        An energy number, e.g, Incident Energy: 6600 eV, 
+                                              -----> will do normalization from 6600 eV to the end of tail feature
+                                    Not difine-----> Normalization to the whole area
+        Returns
+        -------
+        out : A data ndarray of the maxima [peak_energy, peak_intensity]
+
+        """
+        # Define the width of peaks that we want to detect
+        peak_detect_width = np.arange(accuracy[0],accuracy[1])
+        # Find peaks for the whole XANES_data range
+        peak_index = signal.find_peaks_cwt(XANES_data[1],np.arange(3,30))
+        peak_dataList = np.array([XANES_data[0][peak_index],XANES_data[1][peak_index]])
+        if energy_range == None:
+            # plot the figures
+            plt.plot(XANES_data[0]*1000,XANES_data[1])
+            plt.scatter(peak_dataList[0]*1000,peak_dataList[1],c='r')
+            plt.xlabel('Energy [eV]')
+            plt.show()
+            return peak_dataList
+        else:
+            e1 = energy_range[0]
+            e2 = energy_range[1]
+            # Define range interested
+            # And pick out the specific peaks
+            interested_index = np.where((peak_dataList[0]*1000 >= e1)&(peak_dataList[0]*1000 <= e2))
+            range_peak_dataList = np.array([peak_dataList[0][interested_index],peak_dataList[1][interested_index]])
+
+            # plot the figures
+            plt.plot(XANES_data[0]*1000,XANES_data[1])
+            plt.scatter(peak_dataList[0]*1000,peak_dataList[1],c='r')
+            plt.xlim(e1,e2)
+            y_max = max(range_peak_dataList[1])
+            plt.ylim(0,y_max*1.2)
+            plt.xlabel('Energy [eV]')
+            plt.show()
+            return range_peak_dataList
 
     def RIXS_data(self,firstScan, lastScan, concCorrecScan, interp_npt_1eV = 20, choice = 'EE', savetxt = False):
         """
