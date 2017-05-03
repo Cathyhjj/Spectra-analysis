@@ -119,7 +119,7 @@ class DataAnalysis(object):
         out : A 1d data ndarray [incident_Energy_interp, XANES_merge_inten]
               incident_Energy_interp -----> interpolated incident energy
               XANES_merge_inten -----> interpolated intensity
-    """
+        """
         # Each scan has different incident energy points
         # this step finds the highest incident energy corresponding scan
         #             and the lowest incident energy corresponding scan
@@ -211,7 +211,7 @@ class DataAnalysis(object):
         norm_dataArray = np.array([XANES_data[0],norm_intensity])
         return norm_dataArray
     
-        def XANES_find_peaks(self, XANES_data, energy_range = None, accuracy = (3,30)):
+    def XANES_find_peaks(self, XANES_data, energy_range = None, accuracy = (3,30)):
         """
         Find XANES peaks
         Parameters
