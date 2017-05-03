@@ -214,13 +214,13 @@ class DataAnalysis(object):
         norm_dataArray = np.array([XANES_data[0],norm_intensity])
         return norm_dataArray
     
-    def XANES_area(self, XANES_data, (e1, e2)):
+    def XANES_area(self, XANES_data, energy_range):
         """
         Calculate XANES area
         Parameters
         ----------
         XANES_data : The XANES_data output ndarray
-        (e1, e2): Energy range tuple
+        energy_range: (e1, e2)
                   e1: The starting energy for calculating the area, in eV
                   e2: The ending energy for calculating the area, in eV
         Returns
@@ -229,11 +229,11 @@ class DataAnalysis(object):
 
         """
         # Calculate pre-edge area
-        edge_area_index = np.where((XANES_data[0] >= e1/1000) & (XANES_data[0] <= e2/1000))
+        edge_area_index = np.where((XANES_data[0] >= energy_range[0]/1000) & (XANES_data[0] <= energy_range[1]/1000))
         edge_area_intensity = XANES_data[1][edge_area_index[0]]
         # Calculate the tail edge area
         edge_area = np.trapz(edge_area_intensity, dx=1)
-        print('The edge area from %d eV to %d eV is :'%(e1, e2) + str(edge_area) )
+        print('The edge area from %d eV to %d eV is :'%(energy_range[0], energy_range[1]) + str(edge_area) )
         return edge_area
     
     
