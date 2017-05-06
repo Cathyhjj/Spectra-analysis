@@ -621,3 +621,58 @@ class DataAnalysis(object):
         plt.show()
         integration_dataArray = np.array([[dataArray[0][0,:]*1000,sumIntensity_IE],[dataArray[1][:,0]*1000,sumIntensity_ET]])
         return integration_dataArray
+
+    
+    
+# Define some Functions
+def saveFile(dataList, headerList, folderPath = 'None', fileName = 'myData'):
+    """
+    Save data into txt
+    Parameters
+    ----------
+    dataList : [dataArray1, dataArray2..., dataArrayn]
+    headerList : ['Column title 1', 'Column title 2'..., 'Column title n']
+    folderPath: the folder where you want to save your data 
+    fileName: the file name
+    
+    Returns
+    -------
+    out : A '.dat' file saving all the data
+
+    """
+    if folderPath == 'None':
+        folderPath = os.getcwd()
+    
+    dataSaveList = np.array(dataList) 
+    headerSaveList = ' , '.join(headerList)
+    # Save XANES
+    np.savetxt(folderPath + fileName + '.dat', 
+               np.transpose(dataSaveList), fmt = '%.12f', 
+               header = headerSaveList)
+    
+    
+def normalize_toArea(XANES_data, normalized_starting_energy = None):
+    """
+    Normalize XANES to area into unity(whole area or specified tail area)
+    Parameters
+    ----------
+    XANES_data : the XANES_data output ndarray
+    normalized_starting_energy: An energy number, e.g, Incident Energy: 6600 eV, 
+                                          -----> will do normalization from 6600 eV to the end of tail feature
+                                Not difine-----> Normalization to the whole area
+    Returns
+    -------
+    out : A data ndarray [energy, normlized_intensity]
+
+    """
+    if normalized_starting_energy == None:
+        normalized_starting_energy = XANES_data[0][0] * 1000
+    postedge_index = np.where(XANES_data[0] >= normalized_starting_energy/1000)
+    postedge_intensity = XANES_data[1][postedge_index[0]]
+    # Calculate the tail edge area
+    tail_edge_area = np.trapz(postedge_intensity, dx=1)
+    # Normalization to the whole area
+    norm_intensity = XANES_data[1]/tail_edge_area
+    norm_dataArray = np.array([XANES_data[0],norm_intensity])
+    return norm_dataArray
+ 
