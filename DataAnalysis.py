@@ -104,7 +104,7 @@ class DataAnalysis(object):
         self.path = path
         self.sf = SpecFile(path)
     
-    def XANES_data(self, firstScan, lastScan, interp_npt_1eV = 20, method = 'average', savetxt = False):
+    def XANES_data(self, firstScan, lastScan, interp_npt_1eV = 20, method = 'average', savetxt = False, channel = 'det_dtc'):
         """
         To get XANES merged data ndarray from SPEC file
         The incident energy for scans can be different
@@ -116,6 +116,7 @@ class DataAnalysis(object):
         interp_npt_1eV : the number of interpolation points for 1 eV, default: 20 points for 1 eV
                          e.g, Incident Energy: 6535 eV - 6545 eV, 11 eV, 115 points, -----> 220 points
         method : 'average' or 'sum' for intensity
+        channel : 'det_dtc' for HERFD-XAS, 'IF2' for conventional XAS
         savetxt: default True, save the ET, EE data as folders 
         Returns
         -------
@@ -123,6 +124,7 @@ class DataAnalysis(object):
               incident_Energy_interp -----> interpolated incident energy
               XANES_merge_inten -----> interpolated intensity
         """
+        
         # Each scan has different incident energy points
         # this step finds the highest incident energy corresponding scan
         #             and the lowest incident energy corresponding scan
@@ -163,7 +165,7 @@ class DataAnalysis(object):
         for n in range(firstScan, lastScan + 1):
             incident_Energy = self.sf[n].data_column_by_name('arr_hdh_ene')
             # corresponding intensity
-            inten = self.sf[n].data_column_by_name('det_dtc')/self.sf[n].data_column_by_name('I02') # Normalized to I02
+            inten = self.sf[n].data_column_by_name(channel)/self.sf[n].data_column_by_name('I02') # Normalized to I02
             # Define our interp1d function for incident energy, fill the outbound value with 0
             f_interp = interp.interp1d(incident_Energy, inten, bounds_error = False)
             # Find our interpolated incident energy and corresponding intensity
@@ -237,7 +239,7 @@ class DataAnalysis(object):
         return edge_area
     
     
-    def XANES_find_peaks(self, XANES_data, energy_range = None, accuracy = (3,30)):
+    def XANES_find_peaks(self, XANES_data, energy_range = None, accuracy = (3,30), plot = True):
         """
         Find XANES peaks
         Parameters
@@ -245,8 +247,8 @@ class DataAnalysis(object):
         XANES_data : the XANES_data or XANES_normalize output ndarray
         energy_range: default
         An energy number, e.g, Incident Energy: 6600 eV, 
-                                              -----> will do normalization from 6600 eV to the end of tail feature
-                                    Not difine-----> Normalization to the whole area
+                                                -----> will do normalization from 6600 eV to the end of tail feature
+                                      Not difine-----> Normalization to the whole area
         Returns
         -------
         out : A data ndarray of the maxima [peak_energy, peak_intensity]
@@ -255,14 +257,15 @@ class DataAnalysis(object):
         # Define the width of peaks that we want to detect
         peak_detect_width = np.arange(accuracy[0],accuracy[1])
         # Find peaks for the whole XANES_data range
-        peak_index = signal.find_peaks_cwt(XANES_data[1],np.arange(3,30))
+        peak_index = signal.find_peaks_cwt(XANES_data[1],np.arange(accuracy[0],accuracy[1]))
         peak_dataList = np.array([XANES_data[0][peak_index],XANES_data[1][peak_index]])
         if energy_range == None:
             # plot the figures
-            plt.plot(XANES_data[0]*1000,XANES_data[1])
-            plt.scatter(peak_dataList[0]*1000,peak_dataList[1],c='r')
-            plt.xlabel('Energy [eV]')
-            plt.show()
+            if plot == True:
+                plt.plot(XANES_data[0]*1000,XANES_data[1])
+                plt.scatter(peak_dataList[0]*1000,peak_dataList[1],c='r')
+                plt.xlabel('Energy [eV]')
+                plt.show()
             return peak_dataList
         else:
             e1 = energy_range[0]
@@ -273,13 +276,14 @@ class DataAnalysis(object):
             range_peak_dataList = np.array([peak_dataList[0][interested_index],peak_dataList[1][interested_index]])
 
             # plot the figures
-            plt.plot(XANES_data[0]*1000,XANES_data[1])
-            plt.scatter(peak_dataList[0]*1000,peak_dataList[1],c='r')
-            plt.xlim(e1,e2)
-            y_max = max(range_peak_dataList[1])
-            plt.ylim(0,y_max*1.2)
-            plt.xlabel('Energy [eV]')
-            plt.show()
+            if plot == True:
+                plt.plot(XANES_data[0]*1000,XANES_data[1])
+                plt.scatter(peak_dataList[0]*1000,peak_dataList[1],c='r')
+                plt.xlim(e1,e2)
+                y_max = max(range_peak_dataList[1])
+                plt.ylim(0,y_max*1.2)
+                plt.xlabel('Energy [eV]')
+                plt.show()
             return range_peak_dataList
 
     def RIXS_data(self,firstScan, lastScan, concCorrecScan, interp_npt_1eV = 20, choice = 'EE', savetxt = False):
@@ -490,7 +494,7 @@ class DataAnalysis(object):
             YY = dataArray[1] * 1000
             intensity = dataArray[2]
             plt.figure()
-            plt.contourf(XX, YY, intensity, 20)
+            plt.contourf(XX, YY, intensity, 20, cmap = cm.RdYlGn_r)
             plt.colorbar()
             plt.contour(XX, YY, intensity, 20, linewidths = 0.5, colors='black')
             plt.title(title)
@@ -513,19 +517,30 @@ class DataAnalysis(object):
                 plt.ylabel('Energy Transfer [eV]')
         elif mode == '3d':
             from mpl_toolkits.mplot3d import Axes3D
-            from matplotlib import cm
             from matplotlib.ticker import LinearLocator, FormatStrFormatter
             XX = dataArray[0] * 1000
             YY = dataArray[1] * 1000
             intensity = dataArray[2]
-            fig = plt.figure()
+            fig = plt.figure(figsize=(12,8))
             ax = fig.gca(projection='3d')
-            plotting_3d = ax.plot_surface(XX, YY, intensity, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+            plotting_3d = ax.plot_surface(XX, YY, intensity, 
+                              cmap=cm.RdYlGn_r,
+                              rstride=1, cstride=1,
+                              linewidth=1, 
+                              #antialiased=True,
+                              vmin = 0,
+                              vmax = 0.3,
+                              alpha = 1
+                             )
             # Customize the z axis.
             ax.zaxis.set_major_locator(LinearLocator(10))
-            ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+            ax.zaxis.set_major_formatter(FormatStrFormatter('%.01f'))
+            ax.xaxis.set_label('energy')
+            ax.grid(False)
             # Add colorbar
             fig.colorbar(plotting_3d, shrink=0.5, aspect=5)
+            
+
         return plt.show()
     
     def RIXS_cut(self, dataArray, choice, cut):
@@ -622,9 +637,9 @@ class DataAnalysis(object):
         integration_dataArray = np.array([[dataArray[0][0,:]*1000,sumIntensity_IE],[dataArray[1][:,0]*1000,sumIntensity_ET]])
         return integration_dataArray
 
-    
-    
-# Define some Functions
+    #################################
+    ########### Functions ###########
+    #################################
 def saveFile(dataList, headerList, folderPath = 'None', fileName = 'myData'):
     """
     Save data into txt
@@ -676,3 +691,72 @@ def normalize_toArea(XANES_data, normalized_starting_energy = None):
     norm_dataArray = np.array([XANES_data[0],norm_intensity])
     return norm_dataArray
  
+def XANES_find_peaks(XANES_data, energy_range = None, accuracy = (3,30), plot = True):
+    """
+    Find XANES peaks
+    Parameters
+    ----------
+    XANES_data : the XANES_data or XANES_normalize output ndarray
+    energy_range: default
+    An energy number, e.g, Incident Energy: 6600 eV, 
+                                          -----> will do normalization from 6600 eV to the end of tail feature
+                                Not difine-----> Normalization to the whole area
+    Returns
+    -------
+    out : A data ndarray of the maxima [peak_energy, peak_intensity]
+
+    """
+    # Define the width of peaks that we want to detect
+    peak_detect_width = np.arange(accuracy[0],accuracy[1])
+    # Find peaks for the whole XANES_data range
+    peak_index = signal.find_peaks_cwt(XANES_data[1],np.arange(accuracy[0],accuracy[1]))
+    peak_dataList = np.array([XANES_data[0][peak_index],XANES_data[1][peak_index]])
+    if energy_range == None:
+        # plot the figures
+        if plot == True:
+            plt.plot(XANES_data[0]*1000,XANES_data[1])
+            plt.scatter(peak_dataList[0]*1000,peak_dataList[1],c='r')
+            plt.xlabel('Energy [eV]')
+            plt.show()
+        return peak_dataList
+    else:
+        e1 = energy_range[0]
+        e2 = energy_range[1]
+        # Define range interested
+        # And pick out the specific peaks
+        interested_index = np.where((peak_dataList[0]*1000 >= e1)&(peak_dataList[0]*1000 <= e2))
+        range_peak_dataList = np.array([peak_dataList[0][interested_index],peak_dataList[1][interested_index]])
+
+        # plot the figures
+        if plot == True:
+            plt.plot(XANES_data[0]*1000,XANES_data[1])
+            plt.scatter(peak_dataList[0]*1000,peak_dataList[1],c='r')
+            plt.xlim(e1,e2)
+            y_max = max(range_peak_dataList[1])
+            plt.ylim(0,y_max*1.2)
+            plt.xlabel('Energy [eV]')
+            plt.show()
+        return range_peak_dataList
+
+
+def XANES_area(XANES_data, energy_range):
+    """
+    Calculate XANES area
+    Parameters
+    ----------
+    XANES_data : The XANES_data output ndarray
+    energy_range: (e1, e2)
+              e1: The starting energy for calculating the area, in eV
+              e2: The ending energy for calculating the area, in eV
+    Returns
+    -------
+    out : XANES_area, dtype = float
+
+    """
+    # Calculate pre-edge area
+    edge_area_index = np.where((XANES_data[0] >= energy_range[0]/1000) & (XANES_data[0] <= energy_range[1]/1000))
+    edge_area_intensity = XANES_data[1][edge_area_index[0]]
+    # Calculate the tail edge area
+    edge_area = np.trapz(edge_area_intensity, dx=1)
+    print('The edge area from %d eV to %d eV is :'%(energy_range[0], energy_range[1]) + str(edge_area) )
+    return edge_area
