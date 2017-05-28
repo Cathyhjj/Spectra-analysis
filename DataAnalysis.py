@@ -6,7 +6,7 @@
 Exprimental RIXS Data Anaylysis, ESRF ID26 
 --------- version(1.1) --------- 
 HAVE FUN WITH YOUR DATA ANALYSIS!
-03-05-2017 -- Juanjuan Huang(Cathy). 
+28-05-2017 -- Juanjuan Huang(Cathy). 
 
 This includes: 
 (I)  XANES data processing
@@ -14,6 +14,7 @@ This includes:
     1.2 XANES area normalization (normalized to whole area or specified tail region)
     1.3 XANES area integration calculation
     1.4 Find peaks(maxima) in XANES
+    1.5 Radiation damage XANES test
 (II) RIXS data processing
     2.1 2D/3D RIXS plane plotting with interpolation for both incident energy and emission energy
         2.1.1 concentration correction
@@ -24,10 +25,6 @@ This includes:
 (III)Save the data into RIXS txt files so that can be further used by other software, e.g, Matlab
 
 -----
-To do
-[] Center_of_Mass of the peaks
-[] Peaks fitting
-[] Save RIXS plotting data(XX, YY, MDfci_intensity, MDfci_correct_intensity,MDfci_aver_intensity) into a txt file
 """
 
 import numpy as np
@@ -46,7 +43,9 @@ class DataAnalysis(object):
  | (I)  XANES data processing
  |     1.1 Averaged/summed XANES plotting with interpolation for incident energy
  |     1.2 XANES area normalization (normalized to whole area or specified tail region)
- |     1.3 Find peaks(maxima) in XANES
+ |     1.3 XANES area integration calculation
+ |     1.4 Find peaks(maxima) in XANES
+ |     1.5 Radiation damage XANES test
  | (II) RIXS data processing
  |     2.1 2D/3D RIXS plane plotting with interpolation for both incident energy and emission energy
  |         2.1.1 concentration correction
@@ -174,6 +173,96 @@ class DataAnalysis(object):
             # Fill the empty array with the interpolated data
             # Now we only interpolate in incident axis, not in emission axis
             XANES_inten_array[n-firstScan,:] = inten_interp
+
+        if method == 'average':
+            # To average all the intensities for different scans, we ignore the nan data
+            XANES_merge_inten = np.nanmean(XANES_inten_array, axis = 0)
+        elif method == 'sum':
+            # To average all the intensities for different scans, we ignore the nan data
+            XANES_merge_inten = np.nansum(XANES_inten_array, axis = 0)
+
+        # Put incident energy and merged intensity into XANES data array
+        dataArray_XANES = np.array([incident_Energy_interp, XANES_merge_inten]) 
+
+        if savetxt == True:
+            pass
+        
+        return dataArray_XANES
+    
+    
+    def Radiation_damage(self, firstScan, lastScan, scanStep, interp_npt_1eV = 20, 
+                         method = 'average', savetxt = False, channel = 'det_dtc'):
+        """
+        To get XANES merged data ndarray for Radiation damage test
+        The incident energy for scans can be different
+
+        Parameters
+        ----------
+        firstScan : the index of first scan, e.g, 71 corresponding to fscan '72.1'
+        lastScan : the index of first scan
+        scanStep : the step for radiation damage
+        interp_npt_1eV : the number of interpolation points for 1 eV, default: 20 points for 1 eV
+                         e.g, Incident Energy: 6535 eV - 6545 eV, 11 eV, 115 points, -----> 220 points
+        method : 'average' or 'sum' for intensity
+        channel : 'det_dtc' for HERFD-XAS, 'IF2' for conventional XAS
+        savetxt: default True, save the ET, EE data as folders 
+        Returns
+        -------
+        out : A 1d data ndarray [incident_Energy_interp, XANES_merge_inten]
+              incident_Energy_interp -----> interpolated incident energy
+              XANES_merge_inten -----> interpolated intensity
+        """
+        
+        # Each scan has different incident energy points
+        # this step finds the highest incident energy corresponding scan
+        #             and the lowest incident energy corresponding scan
+        energy_checkmin_list = []
+        energy_checkmax_list = []
+        for n in range(firstScan, lastScan + 1): 
+            IE_min_check = self.sf[n].data_column_by_name('arr_hdh_ene')[0]        
+            IE_max_check = self.sf[n].data_column_by_name('arr_hdh_ene')[-1]
+            energy_checkmin_list.append(IE_min_check)
+            energy_checkmax_list.append(IE_max_check)
+        energy_min_index = energy_checkmin_list.index(min(energy_checkmin_list)) + firstScan
+        energy_max_index = energy_checkmax_list.index(max(energy_checkmax_list)) + firstScan
+
+        # Find the energy span of incident energy (For later interpolation)
+        # e.g, incident energy range : 4.987654 KeV - 4.987987 KeV
+        # will be approximated as 4.9878 KeV for minimum incident Energy 
+        #                         4.9879 KeV for maxmum incident Energy
+        # I do in such a way to ensure the interpolation points lie always inside the experimental incident energy range
+        # 4.9878 > 4.987654 while 4.9879 < 4.987987
+        incident_Energy_min = round(self.sf[energy_min_index].data_column_by_name('arr_hdh_ene')[0]*10000+1)/10000
+        incident_Energy_max = round(self.sf[energy_max_index].data_column_by_name('arr_hdh_ene')[-1]*10000-1)/10000
+
+        # Find the energy span of incident energy
+        incident_Energy_Span = incident_Energy_max - incident_Energy_min
+
+        # Define the total points of interpolation for incident energy
+        # default: 20 points for 1 eV
+        incident_Energy_interp_npt = int(round(incident_Energy_Span*1000) * interp_npt_1eV)
+
+        # Fisrt do the incident energy 1d interpolation
+        # Creat empty arrays filled with NaN for different XANES scans 
+        # which has the shape (scan total numbers, incident_Energy_interp_npt)
+        XANES_inten_array = np.zeros(((lastScan - firstScan + 1,incident_Energy_interp_npt))) 
+        XANES_inten_array[:] = np.nan
+
+        # We then fill the empty array with interpolated concentration corrected intensity
+        # Use scipy.interpolate.interp1d to interpolate the points
+        for n in range(firstScan, lastScan + 1, scanStep):
+            incident_Energy = self.sf[n].data_column_by_name('arr_hdh_ene')
+            # corresponding intensity
+            inten = self.sf[n].data_column_by_name(channel)/self.sf[n].data_column_by_name('I02') # Normalized to I02
+            # Define our interp1d function for incident energy, fill the outbound value with 0
+            f_interp = interp.interp1d(incident_Energy, inten, bounds_error = False)
+            # Find our interpolated incident energy and corresponding intensity
+            incident_Energy_interp = np.linspace(incident_Energy_min, incident_Energy_max, incident_Energy_interp_npt)
+            inten_interp = f_interp (incident_Energy_interp)
+            # Fill the empty array with the interpolated data
+            # Now we only interpolate in incident axis, not in emission axis
+            XANES_inten_array[n-firstScan,:] = inten_interp
+            print('adding the'+ str(n)+ ' scan')
 
         if method == 'average':
             # To average all the intensities for different scans, we ignore the nan data
@@ -636,10 +725,8 @@ class DataAnalysis(object):
         plt.show()
         integration_dataArray = np.array([[dataArray[0][0,:]*1000,sumIntensity_IE],[dataArray[1][:,0]*1000,sumIntensity_ET]])
         return integration_dataArray
-
-    #################################
-    ########### Functions ###########
-    #################################
+    
+    # Functions
 def saveFile(dataList, headerList, folderPath = 'None', fileName = 'myData'):
     """
     Save data into txt
@@ -687,11 +774,11 @@ def normalize_toArea(XANES_data, normalized_starting_energy = None):
     # Calculate the tail edge area
     tail_edge_area = np.trapz(postedge_intensity, dx=1)
     # Normalization to the whole area
-    norm_intensity = XANES_data[1]/tail_edge_area
+    norm_intensity = 20*XANES_data[1]/tail_edge_area
     norm_dataArray = np.array([XANES_data[0],norm_intensity])
     return norm_dataArray
  
-def XANES_find_peaks(XANES_data, energy_range = None, accuracy = (3,30), plot = True):
+def find_peaks(XANES_data, energy_range = None, accuracy = (3,30), plot = True):
     """
     Find XANES peaks
     Parameters
