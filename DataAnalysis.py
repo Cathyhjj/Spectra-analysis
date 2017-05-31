@@ -4,27 +4,10 @@
 
 """
 Exprimental RIXS Data Anaylysis, ESRF ID26 
---------- version(1.1) --------- 
+--------- version ------------ 
 HAVE FUN WITH YOUR DATA ANALYSIS!
-28-05-2017 -- Juanjuan Huang(Cathy). 
-
-This includes: 
-(I)  XANES data processing
-    1.1 Averaged/summed XANES plotting with interpolation for incident energy
-    1.2 XANES area normalization (normalized to whole area or specified tail region)
-    1.3 XANES area integration calculation
-    1.4 Find peaks(maxima) in XANES
-    1.5 Radiation damage XANES test
-(II) RIXS data processing
-    2.1 2D/3D RIXS plane plotting with interpolation for both incident energy and emission energy
-        2.1.1 concentration correction
-        2.1.2 IE versus EE plotting 
-        2.1.3 IE versus ET plotting 
-        2.1.4 RIXS plane CIE CEE CET cuts and integration plotting
-    2.2 Averaging and merging for RIXS planes
-(III)Save the data into RIXS txt files so that can be further used by other software, e.g, Matlab
-
------
+29-05-2017 -- Juanjuan Huang(Cathy). 
+-----------------------------------
 """
 
 import numpy as np
@@ -32,8 +15,9 @@ import matplotlib.pyplot as plt
 from silx.io.specfile import SpecFile
 import scipy.interpolate as interp
 import scipy.ndimage as nd
-from scipy import signal
 import os
+from scipy import signal
+from matplotlib import cm
 
 class DataAnalysis(object):
     '''
@@ -66,6 +50,9 @@ class DataAnalysis(object):
  |  XANES_data(): get XANES merged data ndarray from SPEC file
  |      return [incident energy, intensity], dtype = 1d ndarray
  |
+ |  Radiation_damage(): Averaging for a step of XANES
+ |      return [incident energy, intensity], dtype = 1d ndarray
+ |
  |  XANES_normalize(): Normalize XANES to area into unity(whole area or specified tail area)
  |      return [incident energy, normalized_intensity], dtype = 1d ndarray
  |
@@ -75,6 +62,7 @@ class DataAnalysis(object):
  |  XANES_area(): calculate XANES area for specified energy range
  |      return area, dtype = float
  |
+ |
  |  -----------------------------------------
  |  ------------- RIXS PART -----------------
  |  -----------------------------------------
@@ -82,21 +70,39 @@ class DataAnalysis(object):
  |  RIXS_data() : To get RIXS data ndarray from SPEC file
  |      return data ndarray [incident energy, emission energy, intensity]
  |
- |  RIXS_merge: To merge (sum up/average different RIXS data ndarray)
+ |  RIXS_merge(): To merge (sum up/average different RIXS data ndarray)
  |      return data ndarray [incident energy, emission energy, intensity]
  |
- |  RIXS_display : To plot RIXS planes
+ |  RIXS_display() : To plot RIXS planes
  |      return None
  |
- |  RIXS_cut : To do CIE, CET, CEE cuts
+ |  RIXS_cut() : To do CIE, CET, CEE cuts
  |      return CIE, CET, CEE data ndarray [incident energy/energy transfer, intensity]
  |
- |  RIXS_integration : Integration along incident energy and energy transfer
+ |  RIXS_integration() : Integration along incident energy and energy transfer
  |      return integrated data ndarray [incident energy/energy transfer, intensity]
+ |
+ |  -----------------------------------------
+ |  ----------- GENERAL FUNCTIONS ----------- 
+ |  ---------- This is not methods! --------- 
+ |  -----------------------------------------
+ |
+ |  saveFile() : Save data into .dat file so that the data can be processed with other softwares
+ |
+ |  normalize_toArea() : Normalize XANES to area into unity(whole area or specified tail area)
+ |      return [incident energy, normalized_intensity], dtype = 1d ndarray 
+ |
+ |  find_peaks(): Find XANES peaks and plotting
+ |      return [peak energy, peak_intensity], dtype = 1d ndarray
+ |
+ |  XANES_area(): calculate XANES area for specified energy range
+ |      return area, dtype = float
+ |
  |
  |  Parameters
  |  ----------
  |  path : the filepath of Specfile
+ |
     '''
     
     def __init__(self, path):
@@ -205,7 +211,6 @@ class DataAnalysis(object):
                          e.g, Incident Energy: 6535 eV - 6545 eV, 11 eV, 115 points, -----> 220 points
         method : 'average' or 'sum' for intensity
         channel : 'det_dtc' for HERFD-XAS, 'IF2' for conventional XAS
-        savetxt: default True, save the ET, EE data as folders 
         Returns
         -------
         out : A 1d data ndarray [incident_Energy_interp, XANES_merge_inten]
@@ -559,7 +564,7 @@ class DataAnalysis(object):
         if choice == 'average':
             return averaged_dataArray
     
-    def RIXS_display(self, dataArray, title = 'RIXS', choice = 'EE', mode = '2d'):
+    def RIXS_display(self, dataArray, title = 'RIXS', choice = 'EE', mode = '2d',savefig = False):
         """
         To plot RIXS planes
 
@@ -594,16 +599,19 @@ class DataAnalysis(object):
             #         plt.axis('equal')
             #         plt.figsize = (scan1_ET[2].shape)
             #         plt.show()
-
             plt.xlabel('Incident Energy [eV]')
             if choice == 'EE':
                 plt.ylabel('Emitted Energy [eV]')
+                if savefig == True:
+                    plt.savefig(title+'.png',dpi=300)
                 # plt.ylim(y_lim)
                 # plt.xlim(x_lim)
                 # x_lim = (6537,6544),y_lim=(5892,5902), 
             elif choice == 'ET':
                 plt.axis('equal')
                 plt.ylabel('Energy Transfer [eV]')
+                if savefig == True:
+                    plt.savefig(title+'.png',dpi=300)
         elif mode == '3d':
             from mpl_toolkits.mplot3d import Axes3D
             from matplotlib.ticker import LinearLocator, FormatStrFormatter
@@ -725,9 +733,10 @@ class DataAnalysis(object):
         plt.show()
         integration_dataArray = np.array([[dataArray[0][0,:]*1000,sumIntensity_IE],[dataArray[1][:,0]*1000,sumIntensity_ET]])
         return integration_dataArray
+
     
-    # Functions
-def saveFile(dataList, headerList, folderPath = 'None', fileName = 'myData'):
+# Functions
+def saveFile(dataList, headerList, folderPath = 'None', fileName = 'myData', choice = 'XANES'):
     """
     Save data into txt
     Parameters
@@ -736,6 +745,7 @@ def saveFile(dataList, headerList, folderPath = 'None', fileName = 'myData'):
     headerList : ['Column title 1', 'Column title 2'..., 'Column title n']
     folderPath: the folder where you want to save your data 
     fileName: the file name
+    choice: 'XANES' or 'RIXS'
     
     Returns
     -------
@@ -748,10 +758,15 @@ def saveFile(dataList, headerList, folderPath = 'None', fileName = 'myData'):
     dataSaveList = np.array(dataList) 
     headerSaveList = ' , '.join(headerList)
     # Save XANES
-    np.savetxt(folderPath + fileName + '.dat', 
-               np.transpose(dataSaveList), fmt = '%.12f', 
-               header = headerSaveList)
-    
+    if choice == 'XANES':
+        np.savetxt(folderPath + fileName + '.dat', 
+                   np.transpose(dataSaveList), fmt = '%.12f', 
+                   header = headerSaveList)
+    # Save RIXS
+    elif choice == 'RIXS':
+        np.savetxt(folderPath + fileName + '.dat', 
+                   dataSaveList, fmt = '%.12f', 
+                   header = headerSaveList)
     
 def normalize_toArea(XANES_data, normalized_starting_energy = None):
     """
