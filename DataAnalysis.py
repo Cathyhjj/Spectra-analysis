@@ -1,14 +1,16 @@
-
 # coding: utf-8
 #RIXS_Data_Analysis
 
 """
 Exprimental RIXS Data Anaylysis, ESRF ID26 
---------- version ------------ 
+--------- version(1.1) ------------ 
 HAVE FUN WITH YOUR DATA ANALYSIS!
-29-05-2017 -- Juanjuan Huang(Cathy). 
+28-05-2017 -- Juanjuan Huang(Cathy). 
 -----------------------------------
 """
+
+# LOGBOOK
+# 20170613 -- update : <XANES_data> -- skip problematic scans, skipScan choice
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -109,7 +111,8 @@ class DataAnalysis(object):
         self.path = path
         self.sf = SpecFile(path)
     
-    def XANES_data(self, firstScan, lastScan, interp_npt_1eV = 20, method = 'average', savetxt = False, channel = 'det_dtc'):
+    def XANES_data(self, firstScan, lastScan, skipScan = [], interp_npt_1eV = 20, 
+                   method = 'average', savetxt = False, channel = 'det_dtc'):
         """
         To get XANES merged data ndarray from SPEC file
         The incident energy for scans can be different
@@ -118,6 +121,8 @@ class DataAnalysis(object):
         ----------
         firstScan : the index of first scan, e.g, 71 corresponding to fscan '72.1'
         lastScan : the index of first scan
+        skipScan : the problematic scans that you want to skip, 
+                   e.g, [2,5,8] -- skip '3.1','6.1','9.1' scans 
         interp_npt_1eV : the number of interpolation points for 1 eV, default: 20 points for 1 eV
                          e.g, Incident Energy: 6535 eV - 6545 eV, 11 eV, 115 points, -----> 220 points
         method : 'average' or 'sum' for intensity
@@ -131,8 +136,8 @@ class DataAnalysis(object):
         """
         
         # Each scan has different incident energy points
-        # this step finds the highest incident energy corresponding scan
-        #             and the lowest incident energy corresponding scan
+        # this step finds the highest incident energy of the corresponding scans
+        #             and the lowest incident energy
         energy_checkmin_list = []
         energy_checkmax_list = []
         for n in range(firstScan, lastScan + 1): 
@@ -164,6 +169,12 @@ class DataAnalysis(object):
         # which has the shape (scan total numbers, incident_Energy_interp_npt)
         XANES_inten_array = np.zeros(((lastScan - firstScan + 1,incident_Energy_interp_npt))) 
         XANES_inten_array[:] = np.nan
+        
+        # Define the scans list (skip the problematic scans)
+        scanList = []
+        for n in range(firstScan, lastScan + 1):
+            if n not in skipScan:
+                scanList.append(n)
 
         # We then fill the empty array with interpolated concentration corrected intensity
         # Use scipy.interpolate.interp1d to interpolate the points
@@ -194,7 +205,6 @@ class DataAnalysis(object):
             pass
         
         return dataArray_XANES
-    
     
     def Radiation_damage(self, firstScan, lastScan, scanStep, interp_npt_1eV = 20, 
                          method = 'average', savetxt = False, channel = 'det_dtc'):
@@ -701,7 +711,7 @@ class DataAnalysis(object):
             CEE_dataArray = np.array([dataArray[0][0,:]*1000,cut_intensity])
             return CEE_dataArray
     
-    def RIXS_integration(self, dataArray):
+    def RIXS_integration(self, dataArray, choice = 'IE'):
         """
         Integration along incident energy and energy transfer
 
@@ -731,7 +741,11 @@ class DataAnalysis(object):
         ax[1].set_ylabel('Integrated intensity')
         plt.setp(ax[1].get_yticklabels(), visible = True)
         plt.show()
-        integration_dataArray = np.array([[dataArray[0][0,:]*1000,sumIntensity_IE],[dataArray[1][:,0]*1000,sumIntensity_ET]])
+        if choice == 'IE':
+            integration_dataArray = np.array([dataArray[0][0,:]*1000,sumIntensity_IE])
+        elif choice == 'ET':
+            integration_dataArray = np.array([dataArray[1][:,0]*1000,sumIntensity_ET])
+        #integration_dataArray = np.array([[dataArray[0][0,:]*1000,sumIntensity_IE],[dataArray[1][:,0]*1000,sumIntensity_ET]])
         return integration_dataArray
 
     
@@ -755,17 +769,17 @@ def saveFile(dataList, headerList, folderPath = 'None', fileName = 'myData', cho
     if folderPath == 'None':
         folderPath = os.getcwd()
     
-    dataSaveList = np.array(dataList) 
     headerSaveList = ' , '.join(headerList)
     # Save XANES
     if choice == 'XANES':
+        dataSaveList = np.array(dataList) 
         np.savetxt(folderPath + fileName + '.dat', 
                    np.transpose(dataSaveList), fmt = '%.12f', 
                    header = headerSaveList)
     # Save RIXS
     elif choice == 'RIXS':
         np.savetxt(folderPath + fileName + '.dat', 
-                   dataSaveList, fmt = '%.12f', 
+                   dataList, fmt = '%.12f', 
                    header = headerSaveList)
     
 def normalize_toArea(XANES_data, normalized_starting_energy = None):
