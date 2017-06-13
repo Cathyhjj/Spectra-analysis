@@ -5,12 +5,28 @@
 Exprimental RIXS Data Anaylysis, ESRF ID26 
 --------- version(1.1) ------------ 
 HAVE FUN WITH YOUR DATA ANALYSIS!
-28-05-2017 -- Juanjuan Huang(Cathy). 
+13-06-2017 -- Juanjuan Huang(Cathy). 
 -----------------------------------
 """
 
 # LOGBOOK
-# 20170613 -- update : <XANES_data> -- skip problematic scans, skipScan choice
+# 20170613 -- update : skip problematic scans
+# 20170604 -- update : RIXS_imshow() additional method
+# 20170528 -- update : Radiation damage special average, Radiation_damage() method
+# 20170506 -- update : Add general functions: saveFile(), normalize_toArea()
+# 20170503 -- update : Adding XANES_find_peaks() method
+# 20170502 -- update : Adding Normalization of XANES data
+# 20170419 -- First version
+
+# To do
+# 1. RIXS Normalization
+#    normalized to the maximum of pre-edge
+
+# 2. Checker
+#    2.1 Check whether intensity is wrong
+#    2.2 Check concentration correction
+
+# 3. XANES plotter  
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -76,6 +92,9 @@ class DataAnalysis(object):
  |      return data ndarray [incident energy, emission energy, intensity]
  |
  |  RIXS_display() : To plot RIXS planes
+ |      return None
+ |
+ |  RIXS_imshow() : To plot RIXS planes, using imshow instead of contour plotting to better present the raw data
  |      return None
  |
  |  RIXS_cut() : To do CIE, CET, CEE cuts
@@ -648,6 +667,18 @@ class DataAnalysis(object):
             fig.colorbar(plotting_3d, shrink=0.5, aspect=5)
             
 
+        return plt.show()
+    
+        
+    def RIXS_imshow(self, dataArray):
+        levels = np.linspace(dataArray[2].min(), dataArray[2].max(), 12)
+        extent = (dataArray[0].min(), dataArray[0].max(), 
+                  dataArray[1].min(), dataArray[1].max())
+
+        plt.imshow(dataArray[2], extent=extent, 
+                   origin='lower', aspect='auto',interpolation='nearest')
+        plt.contour(dataArray[2], extent=extent, 
+                    origin='lower', levels=levels,cmap=plt.cm.gray, linewidths=0.5)
         return plt.show()
     
     def RIXS_cut(self, dataArray, choice, cut):
