@@ -10,6 +10,7 @@ HAVE FUN WITH YOUR DATA ANALYSIS!
 """
 
 # LOGBOOK
+# 20170615 -- update : RIXS_normalization() method
 # 20170613 -- update : skip problematic scans
 # 20170604 -- update : RIXS_imshow() additional method
 # 20170528 -- update : Radiation damage special average, Radiation_damage() method
@@ -605,6 +606,7 @@ class DataAnalysis(object):
         x_lim: set limit for y axis, e.g, (5892,5902)
         choice: 'EE' emission energy(default) or 'ET' energy transfer
         mode: '2d' 2D plotting(default), '3d' 3D plotting
+        
         Returns
         -------
         out : ndarray
@@ -680,6 +682,52 @@ class DataAnalysis(object):
         plt.contour(dataArray[2], extent=extent, 
                     origin='lower', levels=levels,cmap=plt.cm.gray, linewidths=0.5)
         return plt.show()
+    
+    def RIXS_normalization(self, RIXS_data, XX_range =()):
+        """
+        RIXS plane normalized to pre-edges (one needs to define pre-edge incident energy range)
+        
+        Parameters
+        ----------
+        RIXS_data : the RIXS_data [XX, YY, intensity]
+        XX_range: default ()
+                  A tuple of pre-edge range, e.g, XX_range =  (6538,6542)
+                  -----> will do normalization to the maximum peak in the range of 6538 eV to 6542 eV
+                  Default if the range not defined
+                  -----> Normalization to the whole area
+        Returns
+        -------
+        out : A data ndarray of the normalized RIXS data [RIXS_XX, RIXS_YY, RIXS_intensity]
+
+        """
+
+        # default incident_energy_range is the whole range
+        if XX_range == ():
+            XX_min = RIXS_data[0].min()
+            XX_max = RIXS_data[0].max()
+            XX_range=(XX_min,XX_max)
+
+        # Crop the RIXS plane into pre-edge region by defining the incident_energy_range
+        # This step is to ensure we are choosing the maximum of pre-edge without influence of main edge
+        # First find indexes of this pre-edge region
+        incident_E_index = np.where((RIXS_data[0][0,:] >= XX_range[0]) & 
+                                    (RIXS_data[0][0,:] <= XX_range[1]))
+        print(incident_E_index)
+        # Find the corresponding intensity of the pre-edge region
+        crop_intensity = RIXS_data[2][:, incident_E_index[0]]
+
+        # Find the maximum of pre-edge peak
+        pre_edge_max = np.nanmax(crop_intensity)
+        print(pre_edge_max)
+
+        # Normalization of RIXS_data intensity
+        norm_intensity = RIXS_data[2]/pre_edge_max
+
+        # Put new normalized data into a new data array
+        norm_RIXS_dataArray = np.array([RIXS_data[0], 
+                                        RIXS_data[1],
+                                        norm_intensity])
+        return norm_RIXS_dataArray
     
     def RIXS_cut(self, dataArray, choice, cut):
         """
