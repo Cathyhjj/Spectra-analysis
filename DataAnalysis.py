@@ -11,7 +11,7 @@ HAVE FUN WITH YOUR DATA ANALYSIS!
 
 # LOGBOOK
 # 20170615 -- update : RIXS_normalization() method
-# 20170613 -- update : skip problematic scans
+# 20170613 -- update : skip XANES problematic scans, skipScan parameter
 # 20170604 -- update : RIXS_imshow() additional method
 # 20170528 -- update : Radiation damage special average, Radiation_damage() method
 # 20170506 -- update : Add general functions: saveFile(), normalize_toArea()
