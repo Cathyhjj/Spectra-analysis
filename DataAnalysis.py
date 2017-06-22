@@ -5,13 +5,14 @@
 Exprimental RIXS Data Anaylysis, ESRF ID26 
 --------- version(1.1) ------------ 
 HAVE FUN WITH YOUR DATA ANALYSIS!
-13-06-2017 -- Juanjuan Huang(Cathy). 
+      Juanjuan Huang(Cathy) 
 -----------------------------------
 """
 
 # LOGBOOK
+# 20170622 -- update : Choice of concen.correc in RIXS planes, RIXS_data_constant_ET() method, Normalization plotting 
 # 20170615 -- update : RIXS_normalization() method
-# 20170613 -- update : skip XANES problematic scans, skipScan parameter
+# 20170613 -- update : skip problematic scans
 # 20170604 -- update : RIXS_imshow() additional method
 # 20170528 -- update : Radiation damage special average, Radiation_damage() method
 # 20170506 -- update : Add general functions: saveFile(), normalize_toArea()
@@ -87,6 +88,10 @@ class DataAnalysis(object):
  |  -----------------------------------------
  |
  |  RIXS_data() : To get RIXS data ndarray from SPEC file
+ |      return data ndarray [incident energy, emission energy, intensity]
+ |
+ |  RIXS_data_constantET() : To get RIXS data ndarray from SPEC file. In this type of scan, ET is fixed
+ |                           This is different with RIXS_data where the emission energy is fixed.
  |      return data ndarray [incident energy, emission energy, intensity]
  |
  |  RIXS_merge(): To merge (sum up/average different RIXS data ndarray)
@@ -410,7 +415,7 @@ class DataAnalysis(object):
                 plt.show()
             return range_peak_dataList
 
-    def RIXS_data(self,firstScan, lastScan, concCorrecScan, interp_npt_1eV = 20, choice = 'EE', savetxt = False):
+    def RIXS_data(self,firstScan, lastScan, concCorrecScan = False, interp_npt_1eV = 20, choice = 'EE', savetxt = False):
         """
         To get RIXS data ndarray from SPEC file
 
@@ -460,9 +465,9 @@ class DataAnalysis(object):
         incident_Energy_interp_npt = int(round(incident_Energy_Span*1000)*interp_npt_1eV)
         # And emission energy
         emission_Energy_interp_npt = int(round(emission_Energy_Span*1000)*interp_npt_1eV)
-
-        # Collect concentration correction intensity into an array
-        concCorrec_inten = self.sf[concCorrecScan].data_column_by_name('det_dtc')/self.sf[concCorrecScan].data_column_by_name('I02') # Normalized to I02
+        if concCorrecScan != False:
+            # Collect concentration correction intensity into an array
+            concCorrec_inten = self.sf[concCorrecScan].data_column_by_name('det_dtc')/self.sf[concCorrecScan].data_column_by_name('I02') # Normalized to I02
 
         # Fisrt do the incident energy 1d interpolation
         # Creat empty arrays filled with 0 for RIXS intensity 
@@ -472,8 +477,12 @@ class DataAnalysis(object):
         # Use scipy.interpolate.interp1d to interpolate the points
         for n in range(firstScan, lastScan + 1):
             incident_Energy = self.sf[n].data_column_by_name('arr_hdh_ene')
-            # To do concentration correction for intensity
-            correc_inten = self.sf[n].data_column_by_name('det_dtc')/(self.sf[n].data_column_by_name('I02')*concCorrec_inten[n-firstScan]) #Normalized to I02
+            if concCorrecScan == False:
+                # don't do concentration correction for intensity
+                correc_inten = self.sf[n].data_column_by_name('det_dtc')/(self.sf[n].data_column_by_name('I02'))
+            else:
+                # To do concentration correction for intensity
+                correc_inten = self.sf[n].data_column_by_name('det_dtc')/(self.sf[n].data_column_by_name('I02')*concCorrec_inten[n-firstScan]) #Normalized to I02
             # Define our interp1d function for incident energy, fill the outbound value with 0
             f_interp = interp.interp1d(incident_Energy, correc_inten, bounds_error = False, fill_value = 0)
             # Find our interpolated incident energy and corresponding intensity
@@ -549,7 +558,41 @@ class DataAnalysis(object):
             return dataArray_EE
         if choice == 'ET':      
             return dataArray_ET
+        
+    def RIXS_data_constantET(self,firstScan, lastScan, concCorrecScan = False):
 
+        incident_Energy = np.array([self.sf[i].data_column_by_name('mono.energy')[1] for i in range(firstScan, lastScan+1)]) 
+        emission_Energy_firstScan = self.sf[firstScan].data_column_by_name('Spec.Energy')
+        Energy_transfer = np.zeros_like(self.sf[firstScan].data_column_by_name('mono.energy'))
+
+        # Fill the empty energy_transfer array
+        for n in range(len(Energy_transfer)):
+            Energy_transfer[n] = incident_Energy[0] - emission_Energy_firstScan[n]
+
+        # Creat an empty array
+        MDfci_correc_inten = np.zeros(((len(Energy_transfer), len(incident_Energy))))
+        
+        
+        # We then fill the empty array with intensity
+        for n in range(firstScan, lastScan + 1):
+            # intensity for each scan at fixed incident energy
+            
+            if concCorrecScan == False:
+                correc_inten = self.sf[n].data_column_by_name('det_dtc')/self.sf[n].data_column_by_name('I02') #Normalized to I02
+            else:
+                # Collect concentration correction intensity into an array
+                concCorrec_inten = self.sf[concCorrecScan].data_column_by_name('det_dtc')/self.sf[concCorrecScan].data_column_by_name('I02') # Normalized to I02
+                correc_inten = self.sf[n].data_column_by_name('det_dtc')/(self.sf[n].data_column_by_name('I02')*concCorrec_inten[n-firstScan]) 
+    
+            MDfci_correc_inten[:,n-firstScan] = correc_inten
+
+        # Define Grids, EE_XX: incident energy array, EE_YY: emission energy array
+        EE_XX, EE_YY = np.meshgrid(incident_Energy, Energy_transfer)
+        RIXS_dataArray = np.array([EE_XX, EE_YY, MDfci_correc_inten])
+        return RIXS_dataArray
+        
+        
+        
     def RIXS_merge(self, scansets, choice = 'sum'):
         """
         To merge (sum up/average different RIXS data ndarray)
@@ -594,7 +637,8 @@ class DataAnalysis(object):
         if choice == 'average':
             return averaged_dataArray
     
-    def RIXS_display(self, dataArray, title = 'RIXS', choice = 'EE', mode = '2d',savefig = False):
+    def RIXS_display(self, dataArray, title = 'RIXS',  choice = 'EE', mode = '2d',
+                     savefig = False, normalize_to_Preedge = False,):
         """
         To plot RIXS planes
 
@@ -606,6 +650,8 @@ class DataAnalysis(object):
         x_lim: set limit for y axis, e.g, (5892,5902)
         choice: 'EE' emission energy(default) or 'ET' energy transfer
         mode: '2d' 2D plotting(default), '3d' 3D plotting
+        normalize_to_Preedge : set pre-edge maximum as the max color(vmax), 
+                               default = False: automatically choose the max of the whole peak max as vmax
         
         Returns
         -------
@@ -683,7 +729,8 @@ class DataAnalysis(object):
                     origin='lower', levels=levels,cmap=plt.cm.gray, linewidths=0.5)
         return plt.show()
     
-    def RIXS_normalization(self, RIXS_data, XX_range =()):
+    def RIXS_normalization(self, RIXS_data, XX_range =(), plot = False, 
+                           levelnumber = 20, xlim = (6537.3,6544.8), ylim = (638.5, 647)):
         """
         RIXS plane normalized to pre-edges (one needs to define pre-edge incident energy range)
         
@@ -712,13 +759,12 @@ class DataAnalysis(object):
         # First find indexes of this pre-edge region
         incident_E_index = np.where((RIXS_data[0][0,:] >= XX_range[0]) & 
                                     (RIXS_data[0][0,:] <= XX_range[1]))
-        print(incident_E_index)
         # Find the corresponding intensity of the pre-edge region
         crop_intensity = RIXS_data[2][:, incident_E_index[0]]
 
         # Find the maximum of pre-edge peak
         pre_edge_max = np.nanmax(crop_intensity)
-        print(pre_edge_max)
+        #print(pre_edge_max)
 
         # Normalization of RIXS_data intensity
         norm_intensity = RIXS_data[2]/pre_edge_max
@@ -727,6 +773,42 @@ class DataAnalysis(object):
         norm_RIXS_dataArray = np.array([RIXS_data[0], 
                                         RIXS_data[1],
                                         norm_intensity])
+        if plot == True:
+            # Auto scale Plotting
+            # Each contour have differenr intensity range, so we need different levels for contour plotting
+            intensity_range = np.nanmax(norm_intensity) - np.nanmin(norm_intensity)
+            #level = int(intensity_range * levelscale)
+            level = list(np.arange(0,1,1/levelnumber))
+            # print('intensity range', intensity_range)
+            fig = plt.figure(figsize=(6,6))
+            MyContour = plt.contourf(norm_RIXS_dataArray[0],
+                                     norm_RIXS_dataArray[1],
+                                     norm_RIXS_dataArray[2],
+                                     #level,
+                                     levels = level,
+                                     cmap=cm.RdYlGn_r,
+                                     vmin = -0.2,
+                                     vmax = 1,
+                                     extend="both",
+                                    )
+            MyContour.cmap.set_over('#c21c27')
+            MyContour.cmap.set_under('white')
+            plt.colorbar()
+            plt.contour(norm_RIXS_dataArray[0],
+                        norm_RIXS_dataArray[1],
+                        norm_RIXS_dataArray[2],
+                        levels = level,
+                        linewidths = 0.3, 
+                        colors='black')
+            plt.xlim(xlim[0], xlim[1])
+            plt.ylim(ylim[0], ylim[1])
+            #plt.yticks(np.arange(640, 648, 1))
+            plt.gca().set_aspect('equal', adjustable='box')
+            # plt.title(title)
+            plt.xlabel('Incident Energy [eV]')
+            plt.ylabel('Energy Transfer [eV]')
+            #fig.savefig('norm_RIXS'%(n), dpi =300)
+            plt.show()
         return norm_RIXS_dataArray
     
     def RIXS_cut(self, dataArray, choice, cut):
