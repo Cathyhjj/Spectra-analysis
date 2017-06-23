@@ -415,7 +415,8 @@ class DataAnalysis(object):
                 plt.show()
             return range_peak_dataList
 
-    def RIXS_data(self,firstScan, lastScan, concCorrecScan = False, interp_npt_1eV = 20, choice = 'EE', savetxt = False):
+    def RIXS_data(self,firstScan, lastScan, concCorrecScan = False, interp_npt_1eV = 20, 
+                  choice = 'EE', savetxt = False, unit = 'eV'):
         """
         To get RIXS data ndarray from SPEC file
 
@@ -429,7 +430,8 @@ class DataAnalysis(object):
                               Emitted  Energy: 5890 eV - 5905 eV, 15 eV, 76  points, -----> 300 points
         choice : 'EE': get -----> incident energy & emission energy plotting
                  'ET': get -----> energy transfer & emission energy plotting
-        savetxt: default True, save the ET, EE data as folders 
+        savetxt: default True, save the ET, EE data as folders
+        unit: Energy unit -----> 'eV' or 'KeV', default is 'eV' (in original Specfiles are in KeV)
         Returns
         -------
         if choice = 'EE'
@@ -555,8 +557,16 @@ class DataAnalysis(object):
                 np.savetxt(EE_path + '_ET.txt', dataArray_ET, fmt = '%.10f')
 
         if choice == 'EE':
+            if unit == 'eV':
+                dataArray_EE[0] = dataArray_EE[0]*1000
+                dataArray_EE[1] = dataArray_EE[1]*1000
+                return dataArray_EE
             return dataArray_EE
-        if choice == 'ET':      
+        if choice == 'ET': 
+            if unit == 'eV':
+                dataArray_ET[0] = dataArray_ET[0]*1000
+                dataArray_ET[1] = dataArray_ET[1]*1000
+                return dataArray_ET
             return dataArray_ET
         
     def RIXS_data_constantET(self,firstScan, lastScan, concCorrecScan = False):
@@ -590,8 +600,6 @@ class DataAnalysis(object):
         EE_XX, EE_YY = np.meshgrid(incident_Energy, Energy_transfer)
         RIXS_dataArray = np.array([EE_XX, EE_YY, MDfci_correc_inten])
         return RIXS_dataArray
-        
-        
         
     def RIXS_merge(self, scansets, choice = 'sum'):
         """
@@ -661,8 +669,8 @@ class DataAnalysis(object):
         if mode == '2d':
             # ------------ CONTOURF METHOD ------------
             # Transfer the energy from KeV scale into eV scale
-            XX = dataArray[0] * 1000
-            YY = dataArray[1] * 1000
+            XX = dataArray[0]
+            YY = dataArray[1]
             intensity = dataArray[2]
             plt.figure()
             plt.contourf(XX, YY, intensity, 20, cmap = cm.RdYlGn_r)
@@ -692,8 +700,8 @@ class DataAnalysis(object):
         elif mode == '3d':
             from mpl_toolkits.mplot3d import Axes3D
             from matplotlib.ticker import LinearLocator, FormatStrFormatter
-            XX = dataArray[0] * 1000
-            YY = dataArray[1] * 1000
+            XX = dataArray[0]
+            YY = dataArray[1]
             intensity = dataArray[2]
             fig = plt.figure(figsize=(12,8))
             ax = fig.gca(projection='3d')
@@ -730,7 +738,8 @@ class DataAnalysis(object):
         return plt.show()
     
     def RIXS_normalization(self, RIXS_data, XX_range =(), plot = False, 
-                           levelnumber = 20, xlim = (6537.3,6544.8), ylim = (638.5, 647)):
+                           levelnumber = 20, xlim = (6537.3,6544.8), ylim = (638.5, 647), 
+                           savefig = False):
         """
         RIXS plane normalized to pre-edges (one needs to define pre-edge incident energy range)
         
@@ -784,14 +793,13 @@ class DataAnalysis(object):
             MyContour = plt.contourf(norm_RIXS_dataArray[0],
                                      norm_RIXS_dataArray[1],
                                      norm_RIXS_dataArray[2],
-                                     #level,
                                      levels = level,
                                      cmap=cm.RdYlGn_r,
                                      vmin = -0.2,
                                      vmax = 1,
                                      extend="both",
                                     )
-            MyContour.cmap.set_over('#c21c27')
+            MyContour.cmap.set_over('#aa1b24')
             MyContour.cmap.set_under('white')
             plt.colorbar()
             plt.contour(norm_RIXS_dataArray[0],
@@ -807,8 +815,10 @@ class DataAnalysis(object):
             # plt.title(title)
             plt.xlabel('Incident Energy [eV]')
             plt.ylabel('Energy Transfer [eV]')
-            #fig.savefig('norm_RIXS'%(n), dpi =300)
+            if savefig == True:
+                fig.savefig('norm_RIXS', dpi =300)
             plt.show()
+            
         return norm_RIXS_dataArray
     
     def RIXS_cut(self, dataArray, choice, cut):
