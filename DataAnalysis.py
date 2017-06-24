@@ -21,14 +21,11 @@ HAVE FUN WITH YOUR DATA ANALYSIS!
 # 20170419 -- First version
 
 # To do
-# 1. RIXS Normalization
-#    normalized to the maximum of pre-edge
-
-# 2. Checker
+# 1. Checker
 #    2.1 Check whether intensity is wrong
 #    2.2 Check concentration correction
 
-# 3. XANES plotter  
+# 2. XANES plotter  
 
 import numpy as np
 import matplotlib.pyplot as plt
