@@ -25,7 +25,7 @@ HAVE FUN WITH YOUR DATA ANALYSIS!
 #    2.1 Check whether intensity is wrong
 #    2.2 Check concentration correction
 
-# 2. XANES plotter  
+# 2. XANES plotter, XANES KeV, eV choice and change other XANES method units to eV
 
 import numpy as np
 import matplotlib.pyplot as plt
